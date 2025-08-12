@@ -452,4 +452,12 @@ def send_deployment_notification():
 if __name__ == "__main__":
     send_deployment_notification()
     threading.Thread(target=run_scheduler, daemon=True).start()
+
+    # Webhook set karein
+    webhook_url = os.getenv("WEBHOOK_URL")  # Koyeb ka public URL env me rakho
+    if webhook_url:
+        bot.delete_webhook()
+        bot.set_webhook(f"{webhook_url}/webhook")
+        print(f"Webhook set to {webhook_url}/webhook")
+
     app.run(host="0.0.0.0", port=8000)
