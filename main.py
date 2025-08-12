@@ -10,17 +10,17 @@ from telegram import Update, Bot
 from telegram.ext import CommandHandler, CallbackContext, Updater
 
 # Bot setup
-BOT_TOKEN = "7524865501:AAEeOuoaQATrXujou4sZlzwdiS9fMDQyqkA"
-CHAT_ID = 6268938019
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = int(os.getenv("CHAT_ID"))
 bot = Bot(token=BOT_TOKEN)
 
 # Login credentials
-username = "7903443604"
-password = "Gautam@123"
+username = os.getenv("USERNAME")
+password = os.getenv("PASSWORD")
 
 # API URLs
-LOGIN_URL = "https://admin2.khanglobalstudies.com/api/login-with-password"
-LESSONS_URL = "https://admin2.khanglobalstudies.com/api/user/courses/{course_id}/v2-lessons?new=1&medium=1"
+LOGIN_URL = os.getenv("LOGIN_URL")
+LESSONS_URL = os.getenv("LESSONS_URL")
 
 # Courses
 COURSES = {
