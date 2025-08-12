@@ -24,7 +24,6 @@ LESSONS_URL = os.getenv("LESSONS_URL")
 
 # Courses
 COURSES = {
-    {
     "791": {"name": "GS Crash Course By Khan Sir & Team | Price: ₹99", "chat_id": "0000000000"},
     "790": {"name": "UPSC EPFO 2025 APFC & EO/AO | Price: ₹1999", "chat_id": "0000000000"},
     "789": {"name": "CDS OTA 01 2026 Pratishta Batch | Price: ₹1199", "chat_id": "0000000000"},
