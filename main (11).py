@@ -2,14 +2,16 @@ import requests
 import schedule
 import threading
 import time
+import json
+import os
 from datetime import datetime
 from flask import Flask, request
 from telegram import Update, Bot
 from telegram.ext import CommandHandler, CallbackContext, Updater
 
 # Bot setup
-BOT_TOKEN = "7541259425:AAENHyfxaBPXTD1X02fcZVCZ86WrvTj6r4I"
-CHAT_ID = 6268938019
+BOT_TOKEN = "7524865501:AAEeOuoaQATrXujou4sZlzwdiS9fMDQyqkA"
+CHAT_ID = 6268938019  # Admin ID
 bot = Bot(token=BOT_TOKEN)
 
 # Login credentials
@@ -44,13 +46,20 @@ TOPIC_IDS = {
     "372": 16, "718": 17, "716": 18
 }
 
-# Authorized users
-AUTH_USERS = {
-    6268938019: "696",
-    5400488190: "696",
-    7879332317: "723",
-    6465713273: "716"
-}
+# Auth file
+AUTH_FILE = "auth_data.json"
+
+# Load authorized users
+if os.path.exists(AUTH_FILE):
+    with open(AUTH_FILE, "r") as f:
+        AUTH_USERS = json.load(f)
+else:
+    AUTH_USERS = {
+        6268938019: "696",
+        5400488190: "696",
+        7879332317: "723",
+        6465713273: "716"
+    }
 
 # Headers
 headers = {
@@ -63,6 +72,10 @@ headers = {
 CREDIT_MESSAGE = "𝗧𝗛𝗜𝗦 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗦𝗘𝗡𝗧 𝗕𝗬 💞𝙼𝚁 𝚁𝙰𝙹𝙿𝚄𝚃💞"
 
 # ----------------- Core Functions -----------------
+def save_auth_data():
+    with open(AUTH_FILE, "w") as f:
+        json.dump(AUTH_USERS, f)
+
 def telegram_send(chat_id, text, message_thread_id=None):
     try:
         bot.send_message(chat_id=chat_id, text=text[:4096], parse_mode="HTML", message_thread_id=message_thread_id)
@@ -147,7 +160,7 @@ def format_class_message(cls, course_name):
 # ----------------- Command Handlers -----------------
 def help_command(update: Update, context: CallbackContext):
     update.message.reply_text(
-        "/send - Owner only\n/grpsend - All groups\n/allsend - One group all topics\n/class - Your course\n/ping - Alive\n/help - Help\n/start - Info\n\n" + CREDIT_MESSAGE,
+        "/send - Owner only\n/grpsend - All groups\n/allsend - One group all topics\n/class - Your course\n/auth - Give access\n/unauth - Remove access\n/ping - Alive\n/help - Help\n/start - Info\n\n" + CREDIT_MESSAGE,
         parse_mode="HTML"
     )
 
@@ -180,10 +193,10 @@ def start(update: Update, context: CallbackContext):
 
 def class_command(update: Update, context: CallbackContext):
     user_id = update.effective_chat.id
-    if user_id not in AUTH_USERS:
+    if str(user_id) not in AUTH_USERS:
         update.message.reply_text("❌ Not authorized")
         return
-    course_id = AUTH_USERS[user_id]
+    course_id = AUTH_USERS[str(user_id)]
     if not login():
         update.message.reply_text(f"{CREDIT_MESSAGE}\n❌ Login failed!", parse_mode="HTML")
         return
@@ -191,6 +204,33 @@ def class_command(update: Update, context: CallbackContext):
     for cls in r.json().get("todayclasses", []):
         message = format_class_message(cls, COURSES[course_id]["name"])
         telegram_send(user_id, message)
+
+def auth_command(update: Update, context: CallbackContext):
+    if update.effective_chat.id != CHAT_ID:
+        update.message.reply_text("❌ Unauthorized")
+        return
+    if len(context.args) != 2:
+        update.message.reply_text("Usage: /auth <user_id> <course_id>")
+        return
+    user_id, course_id = context.args
+    AUTH_USERS[str(user_id)] = course_id
+    save_auth_data()
+    update.message.reply_text(f"✅ User {user_id} authorized for course {course_id}")
+
+def unauth_command(update: Update, context: CallbackContext):
+    if update.effective_chat.id != CHAT_ID:
+        update.message.reply_text("❌ Unauthorized")
+        return
+    if len(context.args) != 2:
+        update.message.reply_text("Usage: /unauth <user_id> <course_id>")
+        return
+    user_id, course_id = context.args
+    if str(user_id) in AUTH_USERS and AUTH_USERS[str(user_id)] == course_id:
+        del AUTH_USERS[str(user_id)]
+        save_auth_data()
+        update.message.reply_text(f"❌ User {user_id} unauthorized from course {course_id}")
+    else:
+        update.message.reply_text(f"⚠️ No such authorization found for {user_id} and course {course_id}")
 
 # ----------------- Flask App -----------------
 app = Flask(__name__)
@@ -204,6 +244,8 @@ dispatcher.add_handler(CommandHandler("grpsend", grpsend))
 dispatcher.add_handler(CommandHandler("allsend", allsend))
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("class", class_command))
+dispatcher.add_handler(CommandHandler("auth", auth_command))
+dispatcher.add_handler(CommandHandler("unauth", unauth_command))
 
 @app.route("/")
 def home():
