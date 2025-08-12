@@ -14,6 +14,14 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = int(os.getenv("CHAT_ID"))
 bot = Bot(token=BOT_TOKEN)
 
+# Webhook setup
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+if WEBHOOK_URL:
+    bot.set_webhook(f"{WEBHOOK_URL}/webhook")
+    print(f"✅ Webhook set to {WEBHOOK_URL}/webhook")
+else:
+    print("❌ WEBHOOK_URL not set!")
+    
 # Login credentials
 username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
