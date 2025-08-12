@@ -215,30 +215,32 @@ TOPIC_IDS = {
     "700": 12, "667": 13, "670": 14, "617": 15,
     "372": 16, "718": 17, "716": 18
 }
-
-# Auth Users storage file
+# ----------------- Auth Users storage file -----------------
 AUTH_FILE = "auth_users.json"
 
 def load_auth_users():
+    global AUTH_USERS
     if os.path.exists(AUTH_FILE):
         with open(AUTH_FILE, "r") as f:
-            return json.load(f)
-    return {}
+            AUTH_USERS = json.load(f)
+    else:
+        AUTH_USERS = {}
 
-def save_auth_users(data):
+def save_auth_users():
     with open(AUTH_FILE, "w") as f:
-        json.dump(data, f)
+        json.dump(AUTH_USERS, f)
 
-AUTH_USERS = load_auth_users()
+# First load
+load_auth_users()
 
-# Headers
+# ----------------- Headers -----------------
 headers = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "Authorization": "Bearer undefined"
 }
 
-# Credit
+# ----------------- Credit -----------------
 CREDIT_MESSAGE = "𝗧𝗛𝗜𝗦 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗦𝗘𝗡𝗧 𝗕𝗬 💞𝙼𝚁 𝚁𝙰𝙹𝙿𝚄𝚃💞"
 
 # ----------------- Core Functions -----------------
@@ -326,7 +328,7 @@ def format_class_message(cls, course_name):
 # ----------------- Command Handlers -----------------
 def help_command(update: Update, context: CallbackContext):
     update.message.reply_text(
-        "/send - Owner only\n/grpsend - All groups\n/allsend - One group all topics\n/class - Your course\n/auth - Authorize user\n/unauth - Remove user\n/authlist - List users\n/ping - Alive\n/help - Help\n/start - Info\n\n" + CREDIT_MESSAGE,
+        "/send - Owner only\n/grpsend - All groups\n/allsend - One group all topics\n/class - Your course\n/auth <id> <course_id>\n/unauth <id>\n/authlist - List users\n/ping - Alive\n/help - Help\n/start - Info\n\n" + CREDIT_MESSAGE,
         parse_mode="HTML"
     )
 
@@ -334,19 +336,19 @@ def ping(update: Update, context: CallbackContext):
     update.message.reply_text(f"✅ Bot is Alive!\n{CREDIT_MESSAGE}", parse_mode="HTML")
 
 def send(update: Update, context: CallbackContext):
-    if update.effective_chat.id == CHAT_ID:
+    if str(update.effective_chat.id) == str(CHAT_ID):
         fetch_and_send_to_owner_only()
     else:
         update.message.reply_text("❌ Unauthorized")
 
 def grpsend(update: Update, context: CallbackContext):
-    if update.effective_chat.id == CHAT_ID:
+    if str(update.effective_chat.id) == str(CHAT_ID):
         fetch_and_send()
     else:
         update.message.reply_text("❌ Unauthorized")
 
 def allsend(update: Update, context: CallbackContext):
-    if update.effective_chat.id == CHAT_ID:
+    if str(update.effective_chat.id) == str(CHAT_ID):
         fetch_and_send_to_group_topics()
     else:
         update.message.reply_text("❌ Unauthorized")
@@ -358,6 +360,7 @@ def start(update: Update, context: CallbackContext):
     )
 
 def class_command(update: Update, context: CallbackContext):
+    load_auth_users()
     user_id = str(update.effective_chat.id)
     if user_id not in AUTH_USERS:
         update.message.reply_text("❌ Not authorized")
@@ -372,31 +375,34 @@ def class_command(update: Update, context: CallbackContext):
         telegram_send(user_id, message)
 
 def auth_user(update: Update, context: CallbackContext):
-    if update.effective_chat.id != CHAT_ID:
+    if str(update.effective_chat.id) != str(CHAT_ID):
         return update.message.reply_text("❌ Unauthorized")
     if len(context.args) != 2:
         return update.message.reply_text("Usage: /auth <user_id> <course_id>")
-    user_id, course_id = context.args
+    user_id, course_id = str(context.args[0]), context.args[1]
     AUTH_USERS[user_id] = course_id
-    save_auth_users(AUTH_USERS)
+    save_auth_users()
+    load_auth_users()
     update.message.reply_text(f"✅ Authorized {user_id} for course {course_id}")
 
 def unauth_user(update: Update, context: CallbackContext):
-    if update.effective_chat.id != CHAT_ID:
+    if str(update.effective_chat.id) != str(CHAT_ID):
         return update.message.reply_text("❌ Unauthorized")
     if len(context.args) != 1:
         return update.message.reply_text("Usage: /unauth <user_id>")
-    user_id = context.args[0]
+    user_id = str(context.args[0])
     if user_id in AUTH_USERS:
         del AUTH_USERS[user_id]
-        save_auth_users(AUTH_USERS)
+        save_auth_users()
+        load_auth_users()
         update.message.reply_text(f"✅ UnAuthorized {user_id}")
     else:
         update.message.reply_text("❌ User not found")
 
 def auth_list(update: Update, context: CallbackContext):
-    if update.effective_chat.id != CHAT_ID:
+    if str(update.effective_chat.id) != str(CHAT_ID):
         return update.message.reply_text("❌ Unauthorized")
+    load_auth_users()
     if not AUTH_USERS:
         return update.message.reply_text("No authorized users")
     msg = "Authorized Users:\n\n"
