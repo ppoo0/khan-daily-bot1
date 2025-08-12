@@ -14,14 +14,6 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = int(os.getenv("CHAT_ID"))
 bot = Bot(token=BOT_TOKEN)
 
-# Webhook setup
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-if WEBHOOK_URL:
-    bot.set_webhook(f"{WEBHOOK_URL}/webhook")
-    print(f"✅ Webhook set to {WEBHOOK_URL}/webhook")
-else:
-    print("❌ WEBHOOK_URL not set!")
-
 # Login credentials
 username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
@@ -84,9 +76,9 @@ headers = {
 CREDIT_MESSAGE = "𝗧𝗛𝗜𝗦 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗦𝗘𝗡𝗧 𝗕𝗬 💞𝙼𝚁 𝚁𝙰𝙹𝙿𝚄𝚃💞"
 
 # ----------------- Core Functions -----------------
-def telegram_send(chat_id, text, message_thread_id=None):
+def telegram_send(chat_id, text):
     try:
-        bot.send_message(chat_id=chat_id, text=text[:4096], parse_mode="HTML", message_thread_id=message_thread_id)
+        bot.send_message(chat_id=chat_id, text=text[:4096], parse_mode="HTML")
     except Exception as e:
         print(f"[!] Error sending to {chat_id}: {e}")
 
@@ -101,40 +93,26 @@ def login():
         print(f"[!] Login failed: {e}")
     return False
 
+def fetch_classes(course_id):
+    try:
+        r = requests.get(LESSONS_URL.format(course_id=course_id), headers=headers)
+        return r.json().get("todayclasses", [])
+    except Exception as e:
+        print(f"[!] Error fetching course {course_id}: {e}")
+        return []
+
 def fetch_and_send():
     if not login():
         telegram_send(CHAT_ID, f"{CREDIT_MESSAGE}\n❌ Login failed!")
         return
     for course_id, course_info in COURSES.items():
-        try:
-            r = requests.get(LESSONS_URL.format(course_id=course_id), headers=headers)
-            today_classes = r.json().get("todayclasses", [])
-            if not today_classes:
-                telegram_send(course_info.get("chat_id", CHAT_ID),
-                              f"{CREDIT_MESSAGE}\n📘 Course: {course_info['name']}\n❌ No update found today")
-                continue
-            for cls in today_classes:
+        classes = fetch_classes(course_id)
+        if classes:
+            for cls in classes:
                 message = format_class_message(cls, course_info["name"])
                 telegram_send(course_info["chat_id"], message)
-        except Exception as e:
-            print(f"[!] Error: {e}")
-
-def fetch_and_send_to_owner_only():
-    if not login():
-        telegram_send(CHAT_ID, f"{CREDIT_MESSAGE}\n❌ Login failed!")
-        return
-    for course_id, course_info in COURSES.items():
-        try:
-            r = requests.get(LESSONS_URL.format(course_id=course_id), headers=headers)
-            today_classes = r.json().get("todayclasses", [])
-            if not today_classes:
-                telegram_send(CHAT_ID, f"{CREDIT_MESSAGE}\n📘 Course: {course_info['name']}\n❌ No update found today")
-                continue
-            for cls in today_classes:
-                message = format_class_message(cls, course_info["name"])
-                telegram_send(CHAT_ID, message)
-        except Exception as e:
-            print(f"[!] Error: {e}")
+        else:
+            telegram_send(course_info["chat_id"], f"{CREDIT_MESSAGE}\n📘 {course_info['name']}\n❌ No update found today")
 
 def format_class_message(cls, course_name):
     name = cls.get("name", "No Name")
@@ -161,70 +139,40 @@ def format_class_message(cls, course_name):
     return message
 
 # ----------------- Command Handlers -----------------
-def help_command(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        "/send - Owner only\n/grpsend - All groups\n/class - Your course\n/class <course_id> - Owner check any course\n/auth <id> <course_id>\n/unauth <id>\n/authlist - List users\n/ping - Alive\n/help - Help\n/start - Info\n\n" + CREDIT_MESSAGE,
-        parse_mode="HTML"
-    )
-
-def ping(update: Update, context: CallbackContext):
-    update.message.reply_text(f"✅ Bot is Alive!\n{CREDIT_MESSAGE}", parse_mode="HTML")
-
-def send(update: Update, context: CallbackContext):
-    if str(update.effective_chat.id) == str(CHAT_ID):
-        fetch_and_send_to_owner_only()
-    else:
-        update.message.reply_text("❌ Unauthorized")
-
 def class_command(update: Update, context: CallbackContext):
-    user_id = str(update.effective_chat.id)
-
-    # Owner custom course check
-    if str(user_id) == str(CHAT_ID) and len(context.args) == 1:
-        course_id = context.args[0]
-        if course_id not in COURSES:
-            return update.message.reply_text("❌ Invalid course ID")
-
-        if not login():
-            return update.message.reply_text(f"{CREDIT_MESSAGE}\n❌ Login failed!", parse_mode="HTML")
-
-        r = requests.get(LESSONS_URL.format(course_id=course_id), headers=headers)
-        today_classes = r.json().get("todayclasses", [])
-
-        if not today_classes:
-            return update.message.reply_text(
-                f"{CREDIT_MESSAGE}\n📘 Course: {COURSES[course_id]['name']}\n❌ No update found today",
-                parse_mode="HTML"
-            )
-
-        for cls in today_classes:
-            message = format_class_message(cls, COURSES[course_id]["name"])
-            telegram_send(user_id, message)
-        return
-
-    # Normal user check
-    load_auth_users()
-    if user_id not in AUTH_USERS:
-        update.message.reply_text("❌ Not authorized")
-        return
-
-    course_id = AUTH_USERS[user_id]
     if not login():
         update.message.reply_text(f"{CREDIT_MESSAGE}\n❌ Login failed!", parse_mode="HTML")
         return
 
-    r = requests.get(LESSONS_URL.format(course_id=course_id), headers=headers)
-    today_classes = r.json().get("todayclasses", [])
+    # Owner mode: /class <course_id>
+    if str(update.effective_chat.id) == str(CHAT_ID) and context.args:
+        course_id = context.args[0]
+        if course_id not in COURSES:
+            update.message.reply_text("❌ Invalid course ID")
+            return
+        classes = fetch_classes(course_id)
+        if classes:
+            for cls in classes:
+                message = format_class_message(cls, COURSES[course_id]["name"])
+                telegram_send(CHAT_ID, message)
+        else:
+            telegram_send(CHAT_ID, f"{CREDIT_MESSAGE}\n📘 {COURSES[course_id]['name']}\n❌ No update found today")
+        return
 
-    if not today_classes:
-        return update.message.reply_text(
-            f"{CREDIT_MESSAGE}\n📘 Course: {COURSES[course_id]['name']}\n❌ No update found today",
-            parse_mode="HTML"
-        )
-
-    for cls in today_classes:
-        message = format_class_message(cls, COURSES[course_id]["name"])
-        telegram_send(user_id, message)
+    # Authorized user mode
+    load_auth_users()
+    user_id = str(update.effective_chat.id)
+    if user_id not in AUTH_USERS:
+        update.message.reply_text("❌ Not authorized")
+        return
+    course_id = AUTH_USERS[user_id]
+    classes = fetch_classes(course_id)
+    if classes:
+        for cls in classes:
+            message = format_class_message(cls, COURSES[course_id]["name"])
+            telegram_send(user_id, message)
+    else:
+        telegram_send(user_id, f"{CREDIT_MESSAGE}\n📘 {COURSES[course_id]['name']}\n❌ No update found today")
 
 def auth_user(update: Update, context: CallbackContext):
     if str(update.effective_chat.id) != str(CHAT_ID):
@@ -234,7 +182,6 @@ def auth_user(update: Update, context: CallbackContext):
     user_id, course_id = str(context.args[0]), context.args[1]
     AUTH_USERS[user_id] = course_id
     save_auth_users()
-    load_auth_users()
     update.message.reply_text(f"✅ Authorized {user_id} for course {course_id}")
 
 def unauth_user(update: Update, context: CallbackContext):
@@ -246,7 +193,6 @@ def unauth_user(update: Update, context: CallbackContext):
     if user_id in AUTH_USERS:
         del AUTH_USERS[user_id]
         save_auth_users()
-        load_auth_users()
         update.message.reply_text(f"✅ UnAuthorized {user_id}")
     else:
         update.message.reply_text("❌ User not found")
@@ -254,7 +200,6 @@ def unauth_user(update: Update, context: CallbackContext):
 def auth_list(update: Update, context: CallbackContext):
     if str(update.effective_chat.id) != str(CHAT_ID):
         return update.message.reply_text("❌ Unauthorized")
-    load_auth_users()
     if not AUTH_USERS:
         return update.message.reply_text("No authorized users")
     msg = "Authorized Users:\n\n"
@@ -268,9 +213,6 @@ app = Flask(__name__)
 updater = Updater(token=BOT_TOKEN, use_context=True)
 dispatcher = updater.dispatcher
 
-dispatcher.add_handler(CommandHandler("help", help_command))
-dispatcher.add_handler(CommandHandler("ping", ping))
-dispatcher.add_handler(CommandHandler("send", send))
 dispatcher.add_handler(CommandHandler("class", class_command))
 dispatcher.add_handler(CommandHandler("auth", auth_user))
 dispatcher.add_handler(CommandHandler("unauth", unauth_user))
@@ -294,17 +236,11 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(10)
 
-def send_deployment_notification():
-    telegram_send(CHAT_ID, f"🚀 Bot deployed on Koyeb!\n{CREDIT_MESSAGE}")
-
 if __name__ == "__main__":
-    send_deployment_notification()
     threading.Thread(target=run_scheduler, daemon=True).start()
-
     webhook_url = os.getenv("WEBHOOK_URL")
     if webhook_url:
         bot.delete_webhook()
         bot.set_webhook(f"{webhook_url}/webhook")
-        print(f"Webhook set to {webhook_url}/webhook")
-
+        print(f"✅ Webhook set to {webhook_url}/webhook")
     app.run(host="0.0.0.0", port=8000)
