@@ -10,7 +10,7 @@ from telegram import Update, Bot
 from telegram.ext import CommandHandler, CallbackContext, Updater
 
 # Bot setup
-BOT_TOKEN = "7541259425:AAENHyfxaBPXTD1X02fcZVCZ86WrvTj6r4I"
+BOT_TOKEN = "7524865501:AAEeOuoaQATrXujou4sZlzwdiS9fMDQyqkA"
 CHAT_ID = 6268938019
 bot = Bot(token=BOT_TOKEN)
 
