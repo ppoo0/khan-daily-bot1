@@ -10,8 +10,6 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     CallbackContext,
-    MessageHandler,
-    filters
 )
 from apscheduler.schedulers.background import BackgroundScheduler
 from pytz import timezone
@@ -207,7 +205,6 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Unauthorized")
 
 async def grant_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Grant access to courses for a user"""
     if update.effective_chat.id != CHAT_ID:
         await update.message.reply_text("❌ Only owner can use this command!")
         return
@@ -222,7 +219,6 @@ async def grant_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = int(context.args[0])
         course_ids = context.args[1].split(",")
 
-        # Validate course IDs
         invalid_courses = [cid for cid in course_ids if cid not in COURSES]
         if invalid_courses:
             await update.message.reply_text(
@@ -230,7 +226,6 @@ async def grant_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # Add or update user access
         if user_id in AUTH_USERS:
             existing = set(AUTH_USERS[user_id])
             new_courses = set(course_ids)
@@ -246,7 +241,6 @@ async def grant_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
 async def revoke_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Revoke access to courses for a user"""
     if update.effective_chat.id != CHAT_ID:
         await update.message.reply_text("❌ Only owner can use this command!")
         return
@@ -271,7 +265,6 @@ async def revoke_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
             del AUTH_USERS[user_id]
             await update.message.reply_text(f"✅ Revoked ALL access for user {user_id}")
         else:
-            # Validate course IDs
             invalid_courses = [cid for cid in course_ids if cid not in COURSES]
             if invalid_courses:
                 await update.message.reply_text(
@@ -279,7 +272,6 @@ async def revoke_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
 
-            # Remove specified courses
             remaining = [cid for cid in AUTH_USERS[user_id] if cid not in course_ids]
             if remaining:
                 AUTH_USERS[user_id] = remaining
@@ -295,7 +287,6 @@ async def revoke_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
 async def show_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show current access for a user or all users"""
     if update.effective_chat.id != CHAT_ID:
         await update.message.reply_text("❌ Only owner can use this command!")
         return
@@ -436,11 +427,20 @@ def home():
     return "Bot Active!"
 
 @app.route("/webhook", methods=["POST"])
-async def webhook():
-    if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), bot)
-        await application.initialize()
-        await application.process_update(update)
+def webhook():
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, bot)
+    
+    # Process update in a new thread
+    def process_update():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(application.process_update(update))
+        loop.close()
+    
+    import threading
+    threading.Thread(target=process_update).start()
+    
     return "ok", 200
 
 # Scheduler System
@@ -455,7 +455,7 @@ async def set_webhook():
         url = f"{APP_URL}/webhook"
         try:
             await bot.set_webhook(url)
-            print("[Webhook set successfully]")
+            print(f"[Webhook set successfully at {url}]")
         except Exception as e:
             print(f"[!] Error setting webhook: {e}")
 
