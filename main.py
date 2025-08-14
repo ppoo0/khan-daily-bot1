@@ -24,22 +24,22 @@ LESSONS_URL = "https://admin2.khanglobalstudies.com/api/user/courses/{course_id}
 
 # Courses with names and group chat IDs
 COURSES = {
-    "696": {"name": "PSIR BY SANJAY THAKUR", "chat_id": "-1002898647258"},
-    "686": {"name": "UPSC Mains Answer Writing Program 2025", "chat_id": "-1002565001732"},
-    "691": {"name": "UPSC Adhyan Current Affairs (Hindi Medium) Batch 2026", "chat_id": "-1002821163148"},
-    "704": {"name": "GEOGRAPHY OPTIONAL HINDI MEDIUM SACHIN ARORA", "chat_id": "-1002871614152"},
-    "700": {"name": "HISTORY OPTIONAL HINDI MEDIUM", "chat_id": "-1002662799575"},
-    "667": {"name": "UPSC (Pre + Mains) Foundation Batch 2026 Hindi Medium", "chat_id": "-1002810220072"},
-    "670": {"name": "UPSC G.S (Prelims+Mains)फाउंडेशन प्रोग्राम 2026 हिंदी माध्यम (Offline Class) Mukherjee Nagar", "chat_id": "-1002642433551"},
-    "617": {"name": "Pocket gk batch", "chat_id": "-1002887628954"},
-    "372": {"name": "Geography optional english medium", "chat_id": "-1002170644891"},
-    "718": {"name": "UGC NET/JRF Paper-I December Batch 2025", "chat_id": "1193912277"},
-    "716": {"name": "Math Foundation Batch By Amit Sir", "chat_id": "6465713273"},
-    "592": {"name": " Class 11th VISION BATCH JEE 2027 BILINGUAL | Price: ₹1999", "chat_id": "8064538295"},
+    "696": {"name": "PSIR BY SANJAY THAKUR"},
+    "686": {"name": "UPSC Mains Answer Writing Program 2025"},
+    "691": {"name": "UPSC Adhyan Current Affairs (Hindi Medium) Batch 2026"},
+    "704": {"name": "GEOGRAPHY OPTIONAL HINDI MEDIUM SACHIN ARORA"},
+    "700": {"name": "HISTORY OPTIONAL HINDI MEDIUM"},
+    "667": {"name": "UPSC (Pre + Mains) Foundation Batch 2026 Hindi Medium"},
+    "670": {"name": "UPSC G.S (Prelims+Mains)फाउंडेशन प्रोग्राम 2026 हिंदी माध्यम (Offline Class) Mukherjee Nagar"},
+    "617": {"name": "Pocket gk batch"},
+    "372": {"name": "Geography optional english medium7"},
+    "718": {"name": "UGC NET/JRF Paper-I December Batch 2025"},
+    "716": {"name": "Math Foundation Batch By Amit Sir"},
+    "592": {"name": " Class 11th VISION BATCH JEE 2027 BILINGUAL | Price: ₹1999"},
     "749": {"name": "CSAT (UPSC + UPPCS) Prayagraj Classroom Programme | Price: ₹3499 "},
     "750": {"name": "UPSC G.S (Prelims+Mains)फाउंडेशन प्रोग्राम 2026 हिंदी माध्यम (Offline Class) Mukherjee Nagar | Price: ₹69500 |"},
     "756": {"name": "UPPSC (Prelims +Mains) Foundation Batch 2026 | Price: ₹4999"},
-    "723": {"name": "UGC NET/JRF Geography Foundation Batch December 2025", "chat_id": "7879332317"}
+    "723": {"name": "UGC NET/JRF Geography Foundation Batch December 2025"}
 }
 
 # Topic IDs for /allsend
