@@ -1,4 +1,5 @@
 import os
+import asyncio
 import requests
 import json
 from datetime import datetime
@@ -9,6 +10,8 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     CallbackContext,
+    MessageHandler,
+    filters
 )
 from apscheduler.schedulers.background import BackgroundScheduler
 from pytz import timezone
@@ -434,9 +437,11 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 async def webhook():
-    update = Update.de_json(request.get_json(), bot)
-    await application.process_update(update)
-    return "", 200
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), bot)
+        await application.initialize()
+        await application.process_update(update)
+    return "ok", 200
 
 # Scheduler System
 scheduler = BackgroundScheduler(timezone=timezone("Asia/Kolkata"))
@@ -455,10 +460,10 @@ async def set_webhook():
             print(f"[!] Error setting webhook: {e}")
 
 if __name__ == "__main__":
-    import asyncio
-
     # Set webhook
-    asyncio.run(set_webhook())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(set_webhook())
 
     print("✅ शेड्यूलर स्टार्ट हो गया! रोज 9:30 PM पर ऑटोमैटिक भेजेगा।")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
