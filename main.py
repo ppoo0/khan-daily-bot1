@@ -1,18 +1,19 @@
 import os
 import requests
-import schedule
 import threading
 import time
 from datetime import datetime
 from flask import Flask, request
 from telegram import Update, Bot
 from telegram.ext import CommandHandler, CallbackContext, Dispatcher
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import timezone
 
 # ✅ Load from environment variables
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 USERNAME = os.environ.get("USERNAME")
 PASSWORD = os.environ.get("PASSWORD")
-APP_URL = os.environ.get("APP_URL")  # e.g., https://relaxed-vannie-asew-a4c78a9c.koyeb.app
+APP_URL = os.environ.get("APP_URL")
 
 CHAT_ID = 6268938019
 bot = Bot(token=BOT_TOKEN)
@@ -23,22 +24,22 @@ LESSONS_URL = "https://admin2.khanglobalstudies.com/api/user/courses/{course_id}
 
 # Courses with names and group chat IDs
 COURSES = {
-    "696": {"name": "PSIR BY SANJAY THAKUR"},
-    "686": {"name": "UPSC Mains Answer Writing Program 2025"},
-    "691": {"name": "UPSC Adhyan Current Affairs (Hindi Medium) Batch 2026"},
-    "704": {"name": "GEOGRAPHY OPTIONAL HINDI MEDIUM SACHIN ARORA"},
-    "700": {"name": "HISTORY OPTIONAL HINDI MEDIUM"},
-    "667": {"name": "UPSC (Pre + Mains) Foundation Batch 2026 Hindi Medium"},
-    "670": {"name": "UPSC G.S (Prelims+Mains)फाउंडेशन प्रोग्राम 2026 हिंदी माध्यम (Offline Class) Mukherjee Nagar"},
-    "617": {"name": "Pocket gk batch"},
-    "372": {"name": "Geography optional english medium7"},
-    "718": {"name": "UGC NET/JRF Paper-I December Batch 2025"},
-    "716": {"name": "Math Foundation Batch By Amit Sir"},
-    "592": {"name": " Class 11th VISION BATCH JEE 2027 BILINGUAL | Price: ₹1999"},
+    "696": {"name": "PSIR BY SANJAY THAKUR", "chat_id": "-1002898647258"},
+    "686": {"name": "UPSC Mains Answer Writing Program 2025", "chat_id": "-1002565001732"},
+    "691": {"name": "UPSC Adhyan Current Affairs (Hindi Medium) Batch 2026", "chat_id": "-1002821163148"},
+    "704": {"name": "GEOGRAPHY OPTIONAL HINDI MEDIUM SACHIN ARORA", "chat_id": "-1002871614152"},
+    "700": {"name": "HISTORY OPTIONAL HINDI MEDIUM", "chat_id": "-1002662799575"},
+    "667": {"name": "UPSC (Pre + Mains) Foundation Batch 2026 Hindi Medium", "chat_id": "-1002810220072"},
+    "670": {"name": "UPSC G.S (Prelims+Mains)फाउंडेशन प्रोग्राम 2026 हिंदी माध्यम (Offline Class) Mukherjee Nagar", "chat_id": "-1002642433551"},
+    "617": {"name": "Pocket gk batch", "chat_id": "-1002887628954"},
+    "372": {"name": "Geography optional english medium", "chat_id": "-1002170644891"},
+    "718": {"name": "UGC NET/JRF Paper-I December Batch 2025", "chat_id": "1193912277"},
+    "716": {"name": "Math Foundation Batch By Amit Sir", "chat_id": "6465713273"},
+    "592": {"name": " Class 11th VISION BATCH JEE 2027 BILINGUAL | Price: ₹1999", "chat_id": "8064538295"},
     "749": {"name": "CSAT (UPSC + UPPCS) Prayagraj Classroom Programme | Price: ₹3499 "},
     "750": {"name": "UPSC G.S (Prelims+Mains)फाउंडेशन प्रोग्राम 2026 हिंदी माध्यम (Offline Class) Mukherjee Nagar | Price: ₹69500 |"},
     "756": {"name": "UPPSC (Prelims +Mains) Foundation Batch 2026 | Price: ₹4999"},
-    "723": {"name": "UGC NET/JRF Geography Foundation Batch December 2025"}
+    "723": {"name": "UGC NET/JRF Geography Foundation Batch December 2025", "chat_id": "7879332317"}
 }
 
 # Topic IDs for /allsend
@@ -247,11 +248,10 @@ def start(update: Update, context: CallbackContext):
 
 def class_command(update: Update, context: CallbackContext):
     user_id = update.effective_chat.id
-    args = context.args  # /class ke baad ka text
+    args = context.args
 
-    # --- Owner ka special feature ---
     if user_id == CHAT_ID and args:
-        course_id = args[0]  # First argument as course ID
+        course_id = args[0]
         course_info = COURSES.get(course_id)
         if not course_info:
             update.message.reply_text(f"⚠️ Course info not found for ID {course_id}.")
@@ -283,12 +283,11 @@ def class_command(update: Update, context: CallbackContext):
             update.message.reply_text(f"⚠️ Error: {str(e)}")
         return
 
-    # --- Authorized user ka normal feature ---
     if user_id not in AUTH_USERS:
         update.message.reply_text("❌ You are not authorized to use this command.")
         return
 
-    user_courses = AUTH_USERS[user_id]  # List of course IDs
+    user_courses = AUTH_USERS[user_id]
     if not login():
         update.message.reply_text(f"{CREDIT_MESSAGE}\n❌ Login failed! Try again later.", parse_mode="HTML")
         return
@@ -345,19 +344,11 @@ def webhook():
     dispatcher.process_update(update)
     return "", 200
 
-# --- Scheduler ---
-def scheduler_job():
-    print("⏰ Running scheduled job...")
-    fetch_and_send()
+# --- नया शेड्यूलर सिस्टम ---
+scheduler = BackgroundScheduler(timezone=timezone('Asia/Kolkata'))
+scheduler.add_job(fetch_and_send, 'cron', hour=21, minute=30)
+scheduler.start()
 
-schedule.every().day.at("21:30").do(scheduler_job)
-
-def run_scheduler():
-    while True:
-        schedule.run_pending()
-        time.sleep(10)
-
-# --- Auto Webhook Set ---
 def set_webhook():
     if APP_URL:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook?url={APP_URL}/webhook"
@@ -371,5 +362,5 @@ def set_webhook():
 
 if __name__ == "__main__":
     set_webhook()
-    threading.Thread(target=run_scheduler, daemon=True).start()
+    print("✅ शेड्यूलर स्टार्ट हो गया! रोज 9:30 PM पर ऑटोमैटिक भेजेगा।")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
