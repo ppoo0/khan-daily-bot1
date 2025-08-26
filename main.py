@@ -667,6 +667,24 @@ def run_scheduler():
             break
         schedule.run_pending()
         time.sleep(10)
+
+def set_webhook():
+    if APP_URL:
+        try:
+            # पहले webhook को delete करें लेकिन pending updates को DROP न करें
+            bot.delete_webhook(drop_pending_updates=False)  # यहाँ False कर दें
+            
+            # फिर नया webhook set करें
+            url = f"{APP_URL}/webhook"
+            s = bot.set_webhook(url)
+            if s:
+                print(f"[✅] Webhook successfully set to {url}")
+            else:
+                print("[❌] Failed to set webhook")
+        except Exception as e:
+            print(f"[❌] Error setting webhook: {e}")
+    else:
+        print("[⚠️] APP_URL not set, webhook not configured")
         
 if __name__ == "__main__":
     set_webhook()
