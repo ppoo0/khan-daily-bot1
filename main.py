@@ -279,6 +279,9 @@ headers = {
 
 CREDIT_MESSAGE = "𝗧𝗛𝗜𝗦 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗦𝗘𝗡𝗧 𝗕𝗬 💞𝙼𝚁 𝚁𝙰𝙹𝙿𝚄𝚃💞"
 
+# --- Global Stop Flag ---
+stop_flag = False
+
 # --- Helper Functions ---
 def telegram_send(chat_id, text, message_thread_id=None):
     try:
