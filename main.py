@@ -667,21 +667,7 @@ def run_scheduler():
             break
         schedule.run_pending()
         time.sleep(10)
-
-# --- Auto Webhook Set ---
-def set_webhook():
-    if APP_URL:
-        try:
-            # सिर्फ webhook set करें, pending updates को clear न करें
-            url = f"{APP_URL}/webhook"
-            bot.set_webhook(url)
-            print("[Webhook set]:", url)
-
-        except Exception as e:
-            print(f"[!] Error setting webhook: {e}")
-    else:
-        print("[!] APP_URL not set, webhook not configured")
-
+        
 if __name__ == "__main__":
     set_webhook()
     threading.Thread(target=run_scheduler, daemon=True).start()
