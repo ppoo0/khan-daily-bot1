@@ -213,12 +213,96 @@ def ping(update: Update, context: CallbackContext):
     update.message.reply_text(f"✅ Bot is Alive!\n{CREDIT_MESSAGE}", parse_mode="HTML")
 
 def send(update: Update, context: CallbackContext):
-    if update.effective_chat.id == CHAT_ID:
+    if update.effective_chat.id != CHAT_ID:
+        update.message.reply_text("❌ Unauthorized")
+        return
+
+    args = context.args
+
+    # Agar arguments diye gaye hain
+    if args:
+        target_chat_id = args[0]  # pehla argument hamesha chat_id hoga
+        if not target_chat_id.lstrip("-").isdigit():
+            update.message.reply_text("⚠️ Invalid chat_id. Example: /send -1001234567890 OR /send -1001234567890 696")
+            return
+
+        target_chat_id = int(target_chat_id)
+
+        # Agar sirf chat_id diya hai
+        if len(args) == 1:
+            update.message.reply_text(f"⏳ Sending ALL courses to chat {target_chat_id}...")
+            if not login():
+                update.message.reply_text(f"{CREDIT_MESSAGE}\n❌ Login failed!", parse_mode="HTML")
+                return
+
+            for course_id, course_info in COURSES.items():
+                try:
+                    url = LESSONS_URL.format(course_id=course_id)
+                    r = requests.get(url, headers=headers)
+                    data = r.json()
+
+                    if not data.get("success", True):
+                        print(f"[!] API error for course {course_id}: {data.get('message')}")
+                        continue
+
+                    today_classes = data.get("todayclasses", [])
+                    if not today_classes:
+                        print(f"[i] No classes today for {course_info['name']}")
+                        continue
+
+                    for cls in today_classes:
+                        telegram_send(target_chat_id, format_class_message(cls, course_info["name"]))
+                except Exception as e:
+                    print(f"[!] Error in course {course_id}: {e}")
+
+            update.message.reply_text("✅ Done!")
+            return
+
+        # Agar chat_id + course_id dono diye hain
+        elif len(args) == 2:
+            course_id = args[1]
+            course_info = COURSES.get(course_id)
+            if not course_info:
+                update.message.reply_text(f"⚠️ Course ID {course_id} not found in COURSES list.")
+                return
+
+            if not login():
+                update.message.reply_text(f"{CREDIT_MESSAGE}\n❌ Login failed!", parse_mode="HTML")
+                return
+
+            update.message.reply_text(f"⏳ Sending {course_info['name']} to chat {target_chat_id}...")
+
+            try:
+                url = LESSONS_URL.format(course_id=course_id)
+                r = requests.get(url, headers=headers)
+                data = r.json()
+
+                if not data.get("success", True):
+                    update.message.reply_text(f"⚠️ API error: {data.get('message')}")
+                    return
+
+                today_classes = data.get("todayclasses", [])
+                if not today_classes:
+                    update.message.reply_text(f"📭 No updates found today for {course_info['name']}.")
+                    return
+
+                for cls in today_classes:
+                    telegram_send(target_chat_id, format_class_message(cls, course_info["name"]))
+
+                update.message.reply_text("✅ Done!")
+            except Exception as e:
+                update.message.reply_text(f"⚠️ Error: {str(e)}")
+            return
+
+        else:
+            update.message.reply_text("⚠️ Invalid usage. Example:\n/send -1001234567890\n/send -1001234567890 696")
+            return
+
+    # Agar koi argument nahi diya hai → default old behaviour (owner chat me hi bhejna)
+    else:
         update.message.reply_text("⏳ Fetching updates...")
         fetch_and_send_to_owner_only()
         update.message.reply_text("✅ Done!")
-    else:
-        update.message.reply_text("❌ Unauthorized")
 
 def grpsend(update: Update, context: CallbackContext):
     if update.effective_chat.id == CHAT_ID:
