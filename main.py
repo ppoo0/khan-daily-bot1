@@ -331,11 +331,18 @@ def format_class_message(cls, course_name):
 
 # --- Fetch Functions ---
 def fetch_and_send():
+    global stop_flag
+    if stop_flag:   # agar stop command diya hai
+        return
+
     if not login():
         telegram_send(CHAT_ID, f"{CREDIT_MESSAGE}\n❌ Login failed! Check credentials.")
         return
     
     for course_id, course_info in COURSES.items():
+        if stop_flag:   # loop ke beech me bhi check
+            break
+
         try:
             if "chat_id" not in course_info:
                 continue
@@ -355,6 +362,8 @@ def fetch_and_send():
                 continue
                 
             for cls in today_classes:
+                if stop_flag:   # agar /stop aa gaya to class bhejna bhi band
+                    break
                 telegram_send(course_info["chat_id"], format_class_message(cls, course_info["name"]))
         except Exception as e:
             print(f"[!] Error in course {course_id}: {e}")
