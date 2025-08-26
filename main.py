@@ -672,10 +672,7 @@ def run_scheduler():
 def set_webhook():
     if APP_URL:
         try:
-            # ⚡ पहले पुराने updates clear करो
-            bot.delete_webhook(drop_pending_updates=True)
-
-            # फिर नया webhook set करो
+            # सिर्फ webhook set करें, pending updates को clear न करें
             url = f"{APP_URL}/webhook"
             bot.set_webhook(url)
             print("[Webhook set]:", url)
