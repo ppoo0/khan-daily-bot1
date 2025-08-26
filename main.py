@@ -200,28 +200,29 @@ def fetch_and_send_to_group_topics():
     if not login():
         telegram_send(CHAT_ID, f"{CREDIT_MESSAGE}\n❌ Login failed! Check credentials.")
         return
-    
-    for course_id, topic_id in TOPIC_IDS.items():
-        try:
-            url = LESSONS_URL.format(course_id=course_id)
-            r = requests.get(url, headers=headers)
-            data = r.json()
-            
-            if not data.get("success", True):
-                print(f"[!] API error for course {course_id}: {data.get('message')}")
-                continue
-                
-            today_classes = data.get("todayclasses", [])
-            course_name = COURSES.get(course_id, {}).get("name", "Unknown Course")
-            
-            if not today_classes:
-                print(f"[i] No classes today for {course_name}")
-                continue
-                
-            for cls in today_classes:
-                telegram_send(GROUP_ID, format_class_message(cls, course_name), message_thread_id=topic_id)
-        except Exception as e:
-            print(f"[!] Error in allsend for course {course_id}: {e}")
+
+    for group_id, topic_map in GROUPS.items():  # loop per group
+        for course_id, topic_id in topic_map.items():  # loop per topic inside that group
+            try:
+                url = LESSONS_URL.format(course_id=course_id)
+                r = requests.get(url, headers=headers)
+                data = r.json()
+
+                if not data.get("success", True):
+                    print(f"[!] API error for course {course_id}: {data.get('message')}")
+                    continue
+
+                today_classes = data.get("todayclasses", [])
+                course_name = COURSES.get(course_id, {}).get("name", "Unknown Course")
+
+                if not today_classes:
+                    print(f"[i] No classes today for {course_name}")
+                    continue
+
+                for cls in today_classes:
+                    telegram_send(group_id, format_class_message(cls, course_name), message_thread_id=topic_id)
+            except Exception as e:
+                print(f"[!] Error in allsend for course {course_id} in group {group_id}: {e}")
 
 # --- Commands ---
 def help_command(update: Update, context: CallbackContext):
