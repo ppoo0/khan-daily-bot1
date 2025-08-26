@@ -628,6 +628,7 @@ dispatcher = Dispatcher(bot, None, workers=0)
 dispatcher.add_handler(CommandHandler("help", help_command))
 dispatcher.add_handler(CommandHandler("ping", ping))
 dispatcher.add_handler(CommandHandler("send", send))
+dispatcher.add_handler(CommandHandler("stop", stop_command))
 dispatcher.add_handler(CommandHandler("grpsend", grpsend))
 dispatcher.add_handler(CommandHandler("allsend", allsend))
 dispatcher.add_handler(CommandHandler("start", start))
@@ -651,7 +652,11 @@ def scheduler_job():
 schedule.every().day.at("21:30").do(scheduler_job)
 
 def run_scheduler():
+    global stop_flag
     while True:
+        if stop_flag:
+            print("⏹ Scheduler stopped.")
+            break
         schedule.run_pending()
         time.sleep(10)
 
