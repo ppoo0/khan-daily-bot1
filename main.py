@@ -432,6 +432,14 @@ def help_command(update: Update, context: CallbackContext):
 def ping(update: Update, context: CallbackContext):
     update.message.reply_text(f"✅ Bot is Alive!\n{CREDIT_MESSAGE}", parse_mode="HTML")
 
+def stop_command(update: Update, context: CallbackContext):
+    global stop_flag
+    if update.effective_chat.id == CHAT_ID:  # sirf owner hi use kar sake
+        stop_flag = True
+        update.message.reply_text("⏹ All running processes stopped!")
+    else:
+        update.message.reply_text("❌ Unauthorized")
+        
 def send(update: Update, context: CallbackContext):
     if update.effective_chat.id != CHAT_ID:
         update.message.reply_text("❌ Unauthorized")
