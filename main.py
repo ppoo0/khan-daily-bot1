@@ -670,13 +670,16 @@ def run_scheduler():
 
 # --- Auto Webhook Set ---
 def set_webhook():
-    bot.delete_webhook(drop_pending_updates=True)
-    
     if APP_URL:
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook?url={APP_URL}/webhook"
         try:
-            r = requests.get(url)
-            print("[Webhook set response]:", r.text)
+            # ⚡ पहले पुराने updates clear करो
+            bot.delete_webhook(drop_pending_updates=True)
+
+            # फिर नया webhook set करो
+            url = f"{APP_URL}/webhook"
+            bot.set_webhook(url)
+            print("[Webhook set]:", url)
+
         except Exception as e:
             print(f"[!] Error setting webhook: {e}")
     else:
