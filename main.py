@@ -630,7 +630,7 @@ def class_command(update: Update, context: CallbackContext):
 
 # --- Flask App ---
 app = Flask(__name__)
-dispatcher = Dispatcher(bot, None, workers=0)
+dispatcher = Dispatcher(bot, None, workers=4, use_context=True)
 
 # Register all commands in dispatcher
 dispatcher.add_handler(CommandHandler("help", help_command))
