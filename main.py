@@ -200,6 +200,50 @@ def allsend(update: Update, context: CallbackContext):
 def start(update: Update, context: CallbackContext):
     update.message.reply_text("<b>इस बोट के द्वारा खान ग्लोबल स्टडीज के सभी batches की लाइव क्लास daily भेजी जाती है</b>", parse_mode="HTML")
 
+def sendto_command(update: Update, context: CallbackContext):
+    user_id = update.effective_chat.id
+    
+    # Sirf owner hi use kar paye
+    if user_id != CHAT_ID:
+        update.message.reply_text("❌ Unauthorized")
+        return
+    
+    if len(context.args) < 2:
+        update.message.reply_text("⚠️ Usage: /sendto <chat_id> <course_id>")
+        return
+    
+    chat_id = context.args[0]
+    course_id = context.args[1]
+    
+    course_info = COURSES.get(course_id)
+    if not course_info:
+        update.message.reply_text(f"⚠️ Course not found for ID {course_id}.")
+        return
+    
+    if not login():
+        update.message.reply_text(f"{CREDIT_MESSAGE}\n❌ Login failed!", parse_mode="HTML")
+        return
+    
+    url = LESSONS_URL.format(course_id=course_id)
+    try:
+        r = requests.get(url, headers=headers)
+        data = r.json()
+        if not data.get("success", True):
+            update.message.reply_text(f"⚠️ API error: {data.get('message')}")
+            return
+        
+        today_classes = data.get("todayclasses", [])
+        if not today_classes:
+            update.message.reply_text(f"📭 No updates today for {course_info['name']}.")
+            return
+        
+        update.message.reply_text(f"⏳ Sending {len(today_classes)} classes of {course_info['name']} to {chat_id}...")
+        for cls in today_classes:
+            telegram_send(chat_id, format_class_message(cls, course_info["name"]))
+        update.message.reply_text("✅ Done!")
+    except Exception as e:
+        update.message.reply_text(f"⚠️ Error: {str(e)}")
+        
 def class_command(update: Update, context: CallbackContext):
     user_id = update.effective_chat.id
     args = context.args
@@ -283,6 +327,7 @@ dispatcher.add_handler(CommandHandler("ping", ping))
 dispatcher.add_handler(CommandHandler("stop", stop_command))
 dispatcher.add_handler(CommandHandler("grpsend", grpsend))
 dispatcher.add_handler(CommandHandler("allsend", allsend))
+dispatcher.add_handler(CommandHandler("sendto", sendto_command))
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("class", class_command))
 
