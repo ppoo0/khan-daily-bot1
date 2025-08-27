@@ -22,6 +22,8 @@ LESSONS_URL = "https://admin2.khanglobalstudies.com/api/user/courses/{course_id}
 
 # Courses with names and group chat IDs
 COURSES = {
+    "806": {"name": "UPSC G.S (Prelims+Mains) Foundation Programme 2026 English Medium (Offline Class) Karol Bagh | Price: ₹79500"},
+    "805": {"name": "Maths Foundation By Ashu Nayak Sir | Price: ₹199"},
     "802": {"name": "UPSC & UPPSC (Pre+Mains) Foundation Batch 2026 English Medium (Offline Prayagraj) | Price: ₹35000"},
     "801": {"name": "UPSC & UPPSC (Pre+Mains) Foundation Batch 2026 Hindi Medium (Offline Prayagraj) | Price: ₹35000"},
     "800": {"name": "BPSC AEDO BATCH 2025 | Price: ₹999"},
